@@ -1,0 +1,13 @@
+[dossier]
+download_dir = "~/Downloads/"   # "." = dossier actuel du script (~/scripts/youtube-downloader)
+
+[qualite]
+cible = "360"
+format = "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/worst"
+
+[playlists]
+max_videos = 30
+
+[autres]
+url_file = "a_telecharger.txt"
+sleep_seconds = 5
