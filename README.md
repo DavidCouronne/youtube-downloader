@@ -6,8 +6,6 @@
 
 Une interface web moderne pour télécharger des vidéos et playlists YouTube, optimisée pour Jellyfin et Podman Quadlet.
 
-![Screenshot](docs/screenshot.png)
-
 ## ✨ Fonctionnalités
 
 - 🎯 **Interface web intuitive** - Copier-coller une URL et c'est parti
