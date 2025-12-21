@@ -12,19 +12,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Installation de uv (gestionnaire Python rapide)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
-
 # Création du répertoire de travail
 WORKDIR /app
 
 # Copie des fichiers de requirements en premier (cache Docker)
 COPY requirements.txt /app/
 
-# Installation des dépendances Python
-RUN uv pip install --system -r requirements.txt && \
-    uv pip install --system yt-dlp
+# Installation des dépendances Python avec pip
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir yt-dlp
 
 # Copie des fichiers de l'application
 COPY app.py /app/
