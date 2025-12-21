@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  youtube-downloader:
+    image: ghcr.io/davidcouronne/youtube-downloader:latest
+    container_name: youtube-downloader
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Ajustez ce chemin selon votre configuration Jellyfin
+      - ./downloads:/downloads
+      # Optionnel : config personnalisée
+      # - ./config.toml:/app/config.toml:ro
+    environment:
+      - TZ=Europe/Zurich
+      - DOWNLOAD_DIR=/downloads
+    # Limites de ressources (optionnel)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          memory: 512M
