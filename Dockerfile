@@ -1,4 +1,4 @@
-# Dockerfile - Optimisé pour Podman rootless
+# Dockerfile - Simplifié pour Podman rootless (pas de USER)
 FROM python:3.11-slim
 
 # Métadonnées OCI
@@ -26,15 +26,8 @@ RUN uv pip install --system fastapi uvicorn[standard] pydantic yt-dlp
 COPY app.py /app/
 COPY config.toml /app/
 
-# Création de l'utilisateur non-root AVANT les volumes
-RUN useradd -m -u 1000 ytdl && \
-    chown -R ytdl:ytdl /app
-
-# Changement d'utilisateur
-USER ytdl
-
-# Les volumes seront montés par Podman avec les bonnes permissions
-# grâce au user namespace mapping
+# Pas de USER - le container tournera avec l'UID du user qui lance podman
+# C'est la best practice pour Podman rootless
 
 EXPOSE 8000
 
