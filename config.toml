@@ -1,5 +1,5 @@
 [dossier]
-download_dir = "~/Downloads/"   # "." = dossier actuel du script (~/scripts/youtube-downloader)
+download_dir = "/downloads"
 
 [qualite]
 cible = "360"
