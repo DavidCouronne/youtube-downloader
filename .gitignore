@@ -51,6 +51,7 @@ download/
 downloads/
 a_telecharger.txt
 *.log
+DEVELOPPEMENT.md
 
 # Config with sensitive data
 config.local.toml
