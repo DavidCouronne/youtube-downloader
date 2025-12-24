@@ -56,16 +56,13 @@ def download_video(download_id: str, url: str):
     # Construction de la commande
     is_pl = is_playlist(url)
     quality = config["qualite"]["cible"]
-    max_videos = config["playlists"].get("max_videos", 10)
+    max_videos = config["playlists"].get("max_videos", 30)
     sleep = config["autres"].get("sleep_seconds", 5)
     
     cmd = [
         "uv", "run", "yt-dlp",
         "--remote-components", "ejs:github",
         "-f", f"bestvideo[height<={quality}]+bestaudio/best/worst",
-        "--write-info-json",
-        "--write-thumbnail",
-        "--embed-thumbnail",
         "--sleep-interval", str(sleep),
         "--newline",
         "--progress",
