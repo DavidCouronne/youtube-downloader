@@ -91,18 +91,20 @@ systemctl --user enable --now youtube-downloader.container
 
 ## ⚙️ Configuration
 
-### Variables d'environnement
+### Structure des dossiers
 
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `DOWNLOAD_DIR` | `/downloads` | Dossier de destination |
-| `TZ` | `UTC` | Fuseau horaire |
-| `MAX_PLAYLIST_VIDEOS` | `10` | Limite de vidéos par playlist |
-| `VIDEO_QUALITY` | `360` | Hauteur max en pixels |
+Avant de lancer le container, créez la structure suivante :
 
-### Personnalisation avancée
+```bash
+# Créer les dossiers nécessaires
+mkdir -p ~/youtube-downloader/config
+mkdir -p ~/jellyfin/media/youtube
 
-Créez un fichier `config.toml` personnalisé :
+# Créer le fichier de configuration
+nano ~/youtube-downloader/config/config.toml
+```
+
+Contenu du `config.toml` :
 
 ```toml
 [dossier]
@@ -119,11 +121,36 @@ max_videos = 10
 sleep_seconds = 5
 ```
 
-Montez-le dans le container :
+### Variables d'environnement
 
-```bash
--v ./config.toml:/app/config.toml:ro
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `DOWNLOAD_DIR` | `/downloads` | Dossier de destination |
+| `CONFIG_FILE` | `/config/config.toml` | Chemin du fichier de config |
+| `TZ` | `UTC` | Fuseau horaire |
+
+**Note** : Les paramètres `MAX_PLAYLIST_VIDEOS` et `VIDEO_QUALITY` sont définis dans le fichier `config.toml` monté en volume.
+
+### Personnalisation avancée
+
+Le fichier `config.toml` supporte les options suivantes :
+
+```toml
+[dossier]
+download_dir = "/downloads"
+
+[qualite]
+cible = "360"  # ou 480, 720, 1080
+format = "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/worst"
+
+[playlists]
+max_videos = 10  # 0 = illimité
+
+[autres]
+sleep_seconds = 5  # Pause entre téléchargements
 ```
+
+Ce fichier doit être monté dans `/config/config.toml` du container.
 
 ## 🎬 Intégration Jellyfin
 
