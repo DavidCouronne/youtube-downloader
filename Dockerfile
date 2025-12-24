@@ -1,4 +1,4 @@
-# Dockerfile - Version simplifiée avec uv
+# Dockerfile - Optimisé pour Podman rootless
 FROM python:3.11-slim
 
 # Métadonnées OCI
@@ -19,20 +19,22 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY pyproject.toml /app/
 
-# Installation des dépendances avec uv pip (pas de sync)
+# Installation des dépendances avec uv pip
 RUN uv pip install --system fastapi uvicorn[standard] pydantic yt-dlp
 
 # Copie de l'application
 COPY app.py /app/
 COPY config.toml /app/
 
-# Création des répertoires de volumes
-RUN mkdir -p /downloads /config
-
-# Utilisateur non-root
+# Création de l'utilisateur non-root AVANT les volumes
 RUN useradd -m -u 1000 ytdl && \
-    chown -R ytdl:ytdl /app /downloads /config
+    chown -R ytdl:ytdl /app
+
+# Changement d'utilisateur
 USER ytdl
+
+# Les volumes seront montés par Podman avec les bonnes permissions
+# grâce au user namespace mapping
 
 EXPOSE 8000
 
