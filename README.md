@@ -18,10 +18,35 @@ Une interface web moderne pour télécharger des vidéos et playlists YouTube, o
 
 ## 🚀 Démarrage rapide
 
+### Prérequis
+
+- Docker/Podman installé
+- Pour Podman Quadlet : systemd user services activés
+
 ### Option 1 : Docker/Podman Compose (Simple)
 
 ```bash
+# Créer la structure
+mkdir -p ~/youtube-downloader/{config,downloads}
+
+# Créer le fichier de configuration
+cat > ~/youtube-downloader/config/config.toml << 'EOF'
+[dossier]
+download_dir = "/downloads"
+
+[qualite]
+cible = "360"
+format = "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/worst"
+
+[playlists]
+max_videos = 10
+
+[autres]
+sleep_seconds = 5
+EOF
+
 # Télécharger le docker-compose.yml
+cd ~/youtube-downloader
 curl -O https://raw.githubusercontent.com/DavidCouronne/youtube-downloader/main/docker-compose.yml
 
 # Lancer
@@ -33,34 +58,63 @@ podman compose up -d
 
 Accédez à http://localhost:8000
 
-### Option 2 : Podman Quadlet (Production)
+### Option 2 : Podman Quadlet (Production - CachyOS, Arch, Fedora)
 
-Pour CachyOS, Arch, Fedora ou toute distribution avec systemd :
+Pour une intégration systemd native avec auto-restart et auto-update :
+
+#### 1. Créer la structure des dossiers
 
 ```bash
-# 1. Créer le fichier Quadlet
-mkdir -p ~/.config/containers/systemd
-nano ~/.config/containers/systemd/youtube-downloader.container
+# Dossiers de configuration et téléchargements
+mkdir -p ~/youtube-downloader/config
+mkdir -p ~/jellyfin/media/youtube
+
+# Créer le fichier de configuration
+cat > ~/youtube-downloader/config/config.toml << 'EOF'
+[dossier]
+download_dir = "/downloads"
+
+[qualite]
+cible = "360"
+format = "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/worst"
+
+[playlists]
+max_videos = 10
+
+[autres]
+sleep_seconds = 5
+EOF
 ```
 
-Collez cette configuration :
+#### 2. Créer le fichier Quadlet
 
-```ini
+```bash
+mkdir -p ~/.config/containers/systemd
+
+cat > ~/.config/containers/systemd/youtube-downloader.container << 'EOF'
 [Unit]
 Description=YouTube Downloader Web App
 After=network-online.target
+Wants=network-online.target
 
 [Container]
 Image=ghcr.io/davidcouronne/youtube-downloader:latest
 ContainerName=youtube-downloader
 
-# Montez votre dossier Jellyfin (ajustez le chemin)
+# Volumes - AJUSTEZ les chemins selon votre configuration
 Volume=%h/jellyfin/media/youtube:/downloads:Z,rw
+Volume=%h/youtube-downloader/config:/config:Z,ro
 
+# Port
 PublishPort=8000:8000
 
+# Variables d'environnement
+Environment=DOWNLOAD_DIR=/downloads
+Environment=CONFIG_FILE=/config/config.toml
 Environment=TZ=Europe/Zurich
-Restart=always
+
+# Auto-update
+AutoUpdate=registry
 
 [Service]
 Restart=always
@@ -68,13 +122,59 @@ TimeoutStartSec=900
 
 [Install]
 WantedBy=multi-user.target default.target
+EOF
 ```
 
-Activez le service :
+#### 3. Activer et démarrer le service
 
 ```bash
+# Recharger systemd
 systemctl --user daemon-reload
-systemctl --user enable --now youtube-downloader.container
+
+# Activer le lingering (démarrage au boot)
+loginctl enable-linger $USER
+
+# Démarrer le service
+systemctl --user start youtube-downloader
+
+# Vérifier le statut
+systemctl --user status youtube-downloader
+
+# Voir les logs
+journalctl --user -xeu youtube-downloader -f
+```
+
+#### 4. Vérification
+
+```bash
+# Vérifier que le container tourne
+podman ps | grep youtube
+
+# Tester l'interface
+curl http://localhost:8000
+
+# Ou ouvrir dans le navigateur
+xdg-open http://localhost:8000
+```
+
+### Option 3 : Test manuel rapide
+
+```bash
+# Créer les dossiers
+mkdir -p ~/youtube-downloader/{config,downloads}
+
+# Créer la config (voir ci-dessus)
+
+# Lancer le container manuellement
+podman run -d --name youtube-downloader \
+  -p 8000:8000 \
+  -v ~/youtube-downloader/downloads:/downloads:Z \
+  -v ~/youtube-downloader/config:/config:Z,ro \
+  -e DOWNLOAD_DIR=/downloads \
+  -e CONFIG_FILE=/config/config.toml \
+  -e TZ=Europe/Zurich \
+  --restart unless-stopped \
+  ghcr.io/davidcouronne/youtube-downloader:latest
 ```
 
 ## 📁 Structure des téléchargements
@@ -178,20 +278,23 @@ Le plugin utilisera automatiquement les IDs YouTube `[...]` dans les noms de fic
 ### Podman Quadlet
 
 ```bash
-# Statut
-systemctl --user status youtube-downloader.container
+# Statut du service
+systemctl --user status youtube-downloader
 
 # Logs en temps réel
-journalctl --user -xeu youtube-downloader.container -f
+journalctl --user -xeu youtube-downloader -f
 
 # Redémarrer
-systemctl --user restart youtube-downloader.container
+systemctl --user restart youtube-downloader
 
 # Arrêter
-systemctl --user stop youtube-downloader.container
+systemctl --user stop youtube-downloader
 
 # Désactiver
-systemctl --user disable youtube-downloader.container
+systemctl --user disable youtube-downloader
+
+# Vérifier les erreurs Quadlet
+journalctl --user -xe | grep -i quadlet
 ```
 
 ### Docker/Podman
@@ -199,12 +302,48 @@ systemctl --user disable youtube-downloader.container
 ```bash
 # Logs
 docker logs -f youtube-downloader
+# ou
+podman logs -f youtube-downloader
 
 # Redémarrer
 docker restart youtube-downloader
 
 # Accéder au shell
 docker exec -it youtube-downloader sh
+
+# Vérifier les volumes
+docker inspect youtube-downloader | grep -A 10 Mounts
+```
+
+### Mise à jour
+
+```bash
+# Avec Podman Quadlet (auto-update activé)
+podman auto-update
+
+# Activer les vérifications automatiques quotidiennes
+systemctl --user enable --now podman-auto-update.timer
+
+# Avec Docker Compose
+docker compose pull
+docker compose up -d
+```
+
+### Debug
+
+```bash
+# Test manuel du container
+podman run --rm -it -p 8000:8000 \
+  -v ~/jellyfin/media/youtube:/downloads:Z \
+  -v ~/youtube-downloader/config:/config:Z,ro \
+  ghcr.io/davidcouronne/youtube-downloader:latest
+
+# Vérifier les permissions des volumes
+ls -laZ ~/jellyfin/media/youtube/
+ls -laZ ~/youtube-downloader/config/
+
+# Tester la connexion
+curl http://localhost:8000
 ```
 
 ## 🔧 Développement
